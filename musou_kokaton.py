@@ -14,6 +14,7 @@ MAIN_DIR = os.path.split(os.path.abspath(__file__))[0]
 
 
 
+
 def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
     """
     オブジェクトが画面内か画面外かを判定し，真理値タプルを返す
@@ -87,6 +88,7 @@ class Bird(pg.sprite.Sprite):
 
 
 
+
     def change_img(self, num: int, screen: pg.Surface):
         """
         こうかとん画像を切り替え，画面に転送する
@@ -97,7 +99,6 @@ class Bird(pg.sprite.Sprite):
         screen.blit(self.image, self.rect)
 
 
-
     def change_state(self, state: str, hyper_life: int):
         """
         こうかとんの状態を変更する
@@ -105,6 +106,7 @@ class Bird(pg.sprite.Sprite):
             state (str): 新しい状態 ("normal" または "hyper")
             hyper_life (int): "hyper" 状態の発動時間（フレーム数）
         """
+
         self.state = state
         self.hyper_life = hyper_life
 
@@ -115,7 +117,9 @@ class Bird(pg.sprite.Sprite):
         引数2 screen：画面Surface
         """
 
+
         if key_lst[pg.K_LSHIFT]:    #追加機能１　高速化
+
             self.speed = 20
         else:
             self.speed = 10
@@ -146,7 +150,6 @@ class Bird(pg.sprite.Sprite):
         return self.dire
     
 
-
         if self.state == "hyper": #追加機能4
             self.hyper_life -= 1
             if self.hyper_life < 0:
@@ -161,7 +164,6 @@ class Bird(pg.sprite.Sprite):
     
     def get_direction(self) -> tuple[int, int]:
         return self.dire
-    
 
 class Bomb(pg.sprite.Sprite):
     """
@@ -209,10 +211,11 @@ class Beam(pg.sprite.Sprite):
         """
         super().__init__()
 
-
+        #self.vx, self.vy = bird.get_direction()
         self.vx, self.vy = bird.dire
         angle = math.degrees(math.atan2(-self.vy, self.vx)) + digree
         self.image = pg.transform.rotozoom(pg.image.load(f"{MAIN_DIR}/fig/beam.png"), angle, 2.0)
+
 
 
         self.vx = math.cos(math.radians(angle))
@@ -280,7 +283,11 @@ class Shield(pg.sprite.Sprite):
         angle = math.degrees(math.atan2(-self.vy, self.vx))
         self.image =pg.transform.rotozoom(pg.Surface((20, bird.rect.height * 2)),angle,1.0)
         pg.draw.rect(self.image,(0, 0, 0), pg.Rect(0,0,20, bird.rect.height*2))
-        self.img.set_alpha(255)
+
+        self.image.set_alpha(255)
+
+        #self.img.set_alpha(255)
+
         self.rect = self.image.get_rect()
         self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
         self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
@@ -320,9 +327,7 @@ class Score:
     def __init__(self):
         self.font = pg.font.Font(None, 50)
         self.color = (0, 0, 255)
-
         self.score = 0
-
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         self.rect = self.image.get_rect()
         self.rect.center = 100, HEIGHT-50
@@ -333,6 +338,7 @@ class Score:
     
     def score_down(self, add):
         self.score -= add
+
 
 
     def update(self, screen: pg.Surface):
@@ -385,6 +391,27 @@ class NeoGravity(pg.sprite.Sprite):
             self.kill()
 
 
+    def get_score(self):
+        return int(self.score)
+
+class Gravity(pg.sprite.Sprite):
+    def __init__(self, bird, size, life):
+        super().__init__()
+        RGBA = (0, 0, 0, 100)
+        self.image = pg.Surface((2*size, 2*size), pg.SRCALPHA)
+        self.rect = pg.draw.circle(self.image, RGBA, (size, size), size)
+        self.rect.center = bird.rect.center
+        self.image.set_colorkey((255,255,255))
+        self.life = life
+
+    def update(self):
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+
+
+
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -392,11 +419,18 @@ def main():
     score = Score()
     bird = Bird(3, (900, 400))
     bombs = pg.sprite.Group()
+
+
+    
+ 
+
     beams = pg.sprite.Group()        
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
     gras = pg.sprite.Group()
     neos = pg.sprite.Group()
+    shields = pg.sprite.Group()
+
 
     tmr = 0
     clock = pg.time.Clock()
@@ -407,10 +441,15 @@ def main():
                 return 0
             
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-               beams.add(Beam(bird, 0))
 
-
+                beams.add(Beam(bird, 0))
                 
+            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE and key_lst[pg.K_LSHIFT]:
+                beams.add(NeoBeam(bird, 5).gen_beams())     
+                beams.add(Beam(bird))
+
+
+
             if event.type == pg.KEYDOWN and event.key == pg.K_TAB \
                 and score.get_score() > 50\
                 and len(gravities) == 0:
@@ -421,11 +460,12 @@ def main():
                 if  score.score >= 100:
                     bird.change_state("hyper",500)
                     score.score -= 100
-                 
+
             if event.type == pg.KEYDOWN and event.key == pg.K_CAPSLOCK and len(shields) == 0:
                 if score.score > 50:
                     shields.add(Shield(bird,400))
                     score.score_up(-50)
+
 
 
                
@@ -453,6 +493,7 @@ def main():
         screen.blit(bg_img, [0, 0])
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
 
+
             emys.add(Enemy())
 
         for emy in emys:
@@ -476,6 +517,7 @@ def main():
             exps.add(Explosion(bomb, 50))
             score.score_up(1)
 
+
         for bomb in pg.sprite.spritecollide(bird, bombs, True):
             if bird.state == "hyper":
                 exps.add(Explosion(bomb, 50))
@@ -487,7 +529,6 @@ def main():
                 pg.display.update()
                 time.sleep(2)
                 return
-        
 
 
 
@@ -508,6 +549,7 @@ def main():
         gras.draw(screen)
         neos.update()
         neos.draw(screen)
+
 
         score.update(screen)
         
