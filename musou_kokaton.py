@@ -6,8 +6,11 @@ import time
 import pygame as pg
 
 
-WIDTH = 1600  # ゲームウィンドウの幅
-HEIGHT = 900  # ゲームウィンドウの高さ
+
+WIDTH = 1200  # ゲームウィンドウの幅
+HEIGHT = 600  # ゲームウィンドウの高さ
+MAIN_DIR = os.path.split(os.path.abspath(__file__))[0]
+
 
 
 def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
@@ -113,6 +116,10 @@ class Bird(pg.sprite.Sprite):
         引数1 key_lst：押下キーの真理値リスト
         引数2 screen：画面Surface
         """
+        if key_lst[pg.K_LSHIFT]:    #追加機能１　高速化
+            self.speed = 20
+        else:
+            self.speed = 10
         sum_mv = [0, 0]
         for k, mv in __class__.delta.items():
             if key_lst[k]:
@@ -185,15 +192,17 @@ class Beam(pg.sprite.Sprite):
     """
     ビームに関するクラス
     """
-    def __init__(self, bird: Bird):
+    def __init__(self, bird: Bird, digree: float=0):
         """
         ビーム画像Surfaceを生成する
         引数 bird：ビームを放つこうかとん
         """
         super().__init__()
-        self.vx, self.vy = bird.get_direction()
-        angle = math.degrees(math.atan2(-self.vy, self.vx))
-        self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), angle, 2.0)
+
+        self.vx, self.vy = bird.dire
+        angle = math.degrees(math.atan2(-self.vy, self.vx)) + digree
+        self.image = pg.transform.rotozoom(pg.image.load(f"{MAIN_DIR}/fig/beam.png"), angle, 2.0)
+
         self.vx = math.cos(math.radians(angle))
         self.vy = -math.sin(math.radians(angle))
         self.rect = self.image.get_rect()
@@ -210,6 +219,19 @@ class Beam(pg.sprite.Sprite):
         if check_bound(self.rect) != (True, True):
             self.kill()
 
+class NeoBeam():
+    """
+    複数のビーム
+    """
+    def __init__(self, bird: Bird, num: int): 
+        self.bird = bird
+        self.num = num
+        self.beams =list()
+        
+    def gen_beams(self):
+        for angle in range(-50, 51, int(100/(self.num-1))):
+            self.beams.append(Beam(self.bird, angle))
+        return self.beams
 
 class Explosion(pg.sprite.Sprite):
     """
@@ -354,7 +376,15 @@ def main():
                 return 0
             
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                beams.add(Beam(bird))
+
+                beams.add(Beam(bird, 0))
+
+            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE and key_lst[pg.K_LSHIFT]:
+                beams.add(NeoBeam(bird, 5).gen_beams())     
+                beams.add(Beam(bird)) 
+                
+        screen.blit(bg_img, [0, 0])
+
 
             if event.type == pg.KEYDOWN and event.key == pg.K_LSHIFT:
                 bird.speed = 20
