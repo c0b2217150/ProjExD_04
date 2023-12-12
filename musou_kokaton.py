@@ -241,7 +241,7 @@ class Shield(pg.sprite.Sprite):
         angle = math.degrees(math.atan2(-self.vy, self.vx))
         self.image =pg.transform.rotozoom(pg.Surface((20, bird.rect.height * 2)),angle,1.0)
         pg.draw.rect(self.image,(0, 0, 0), pg.Rect(0,0,20, bird.rect.height*2))
-        self.img.set_alpha(255)
+        self.image.set_alpha(255)
         self.rect = self.image.get_rect()
         self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
         self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
@@ -281,7 +281,7 @@ class Score:
     def __init__(self):
         self.font = pg.font.Font(None, 50)
         self.color = (0, 0, 255)
-        self.score = 0
+        self.score = 60
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         self.rect = self.image.get_rect()
         self.rect.center = 100, HEIGHT-50
