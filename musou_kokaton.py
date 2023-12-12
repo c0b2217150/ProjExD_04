@@ -193,6 +193,47 @@ class Beam(pg.sprite.Sprite):
         if check_bound(self.rect) != (True, True):
             self.kill()
 
+class NeoBeam():
+    """
+    複数のビーム
+    """
+    def __init__(self, bird: Bird, num: int): 
+        self.bird = bird
+        self.num = num
+        self.beams =list()
+        
+    def gen_beams(self):
+        for angle in range(-50, 51, int(100/(self.num-1))):
+            self.beams.append(Beam(self.bird, angle))
+        return self.beams
+
+class Explosion(pg.sprite.Sprite):
+    """
+    爆発に関するクラス
+    """
+    def __init__(self, obj: "Bomb|Enemy", life: int):
+        """
+        爆弾が爆発するエフェクトを生成する
+        引数1 obj：爆発するBombまたは敵機インスタンス
+        引数2 life：爆発時間
+        """
+        super().__init__()
+        img = pg.image.load("ex04/fig/explosion.gif")
+        self.imgs = [img, pg.transform.flip(img, 1, 1)]
+        self.image = self.imgs[0]
+        self.rect = self.image.get_rect(center=obj.rect.center)
+        self.life = life
+
+    def update(self):
+        """
+        爆発時間を1減算した爆発経過時間_lifeに応じて爆発画像を切り替えることで
+        爆発エフェクトを表現する
+        """
+        self.life -= 1
+        self.image = self.imgs[self.life//10%2]
+        if self.life < 0:
+            self.kill()
+
 class Shield(pg.sprite.Sprite):
     def __init__(self, bird:Bird, life:int):
         super().__init__()
@@ -303,6 +344,7 @@ def main():
                 beams.add(Beam(bird, 0))
                 
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE and key_lst[pg.K_LSHIFT]:
+                beams.add(NeoBeam(bird, 5).gen_beams())     
                 beams.add(Beam(bird))
 
 
